@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "Studify",
   description: "Focus, Plan, Achieve",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent", // This makes the top bar transparent
+    title: "Studify",
+  },
 };
 
 export const viewport: Viewport = {
