@@ -7,16 +7,16 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Studify",
   description: "Focus, Plan, Achieve",
-  manifest: "/manifest.json", // This connects your PWA passport
+  manifest: "/manifest.json",
 };
 
-// Mobile settings: Prevents zooming and sets the app color bar
 export const viewport: Viewport = {
-  themeColor: "#FDFBF7",
+  themeColor: "#FDFBF7", // I kept your original cream color
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover", // <--- This fixes the iPhone black bars
 };
 
 export default function RootLayout({
