@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 
 // REPLACE THE VALUES BELOW WITH THE CODES FROM YOUR BROWSER TAB
 const firebaseConfig = {
-  apiKey: "AIzaSyD9RAHyhUEpyswkwr3wD0Z1I8KzlBMHyL8",                // <--- PASTE YOUR KEY HERE
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,                // <--- PASTE YOUR KEY HERE
   authDomain: "studify-99baa.firebaseapp.com",      // <--- PASTE YOUR DOMAIN HERE
   projectId: "studify-99baa",       // <--- PASTE YOUR ID HERE
   storageBucket: "studify-99baa.firebasestorage.app",   // <--- PASTE YOUR BUCKET HERE
