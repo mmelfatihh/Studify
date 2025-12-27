@@ -16,8 +16,6 @@ export default function SetupPage() {
     year: "",
     currentTaskSubject: "",
     currentTaskName: "",
-    nextExamSubject: "",
-    daysUntilExam: "",
   });
 
   const handleChange = (e: any) => {
@@ -39,22 +37,18 @@ export default function SetupPage() {
         year: formData.year,
       });
 
-      // 2. Save Dashboard "Active" Data (The Cards)
+      // 2. Save Dashboard "Active" Data
       await setDoc(doc(db, "users", user.uid, "dashboard", "data"), {
         activeTask: {
           subject: formData.currentTaskSubject,
           title: formData.currentTaskName,
-        },
-        nextExam: {
-          subject: formData.nextExamSubject,
-          daysLeft: formData.daysUntilExam,
         }
       });
 
       // 3. Create default attendance data if it doesn't exist
       await setDoc(doc(db, "users", user.uid, "attendance", "stats"), {
         total: 20,
-        attended: 20, // Start safe
+        attended: 20,
         required: 75
       }, { merge: true });
 
@@ -83,22 +77,34 @@ export default function SetupPage() {
           <div className="space-y-4">
             <h2 className="text-sm font-bold text-[#8FB996] uppercase tracking-wider">About You</h2>
             <div className="grid grid-cols-2 gap-4">
-              <input name="name" placeholder="First Name" required onChange={handleChange} className="bg-gray-100 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-[#8FB996]" />
+              <input 
+                name="name" 
+                placeholder="First Name" 
+                required 
+                onChange={handleChange} 
+                className="bg-gray-100 text-gray-900 placeholder-gray-500 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-[#8FB996]" 
+              />
               <select 
-  name="year" 
-  required 
-  onChange={handleChange} 
-  className="bg-gray-100 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-[#8FB996] text-gray-700"
->
-  <option value="" disabled selected>Select Year</option>
-  <option value="1">Year 1</option>
-  <option value="2">Year 2</option>
-  <option value="3">Year 3</option>
-  <option value="4">Year 4</option>
-  <option value="5">Year 5+</option>
-</select>
+                name="year" 
+                required 
+                onChange={handleChange} 
+                className="bg-gray-100 text-gray-900 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-[#8FB996]"
+              >
+                <option value="" disabled selected>Select Year</option>
+                <option value="1">Year 1</option>
+                <option value="2">Year 2</option>
+                <option value="3">Year 3</option>
+                <option value="4">Year 4</option>
+                <option value="5">Year 5+</option>
+              </select>
             </div>
-            <input name="major" placeholder="Major (e.g. Computer Science)" required onChange={handleChange} className="w-full bg-gray-100 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-[#8FB996]" />
+            <input 
+              name="major" 
+              placeholder="Major (e.g. Computer Science)" 
+              required 
+              onChange={handleChange} 
+              className="w-full bg-gray-100 text-gray-900 placeholder-gray-500 p-4 rounded-2xl outline-none focus:ring-2 focus:ring-[#8FB996]" 
+            />
           </div>
 
           {/* SECTION 2: WHAT'S HAPPENING? */}
@@ -109,17 +115,20 @@ export default function SetupPage() {
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <label className="text-xs font-bold text-gray-400 mb-2 block">WHAT ARE YOU STUDYING NOW?</label>
               <div className="grid grid-cols-2 gap-2">
-                <input name="currentTaskSubject" placeholder="Subject (e.g. Math)" required onChange={handleChange} className="bg-white p-3 rounded-xl outline-none" />
-                <input name="currentTaskName" placeholder="Topic (e.g. Calculus II)" required onChange={handleChange} className="bg-white p-3 rounded-xl outline-none" />
-              </div>
-            </div>
-
-            {/* Exam Input */}
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <label className="text-xs font-bold text-gray-400 mb-2 block">NEXT BIG EXAM?</label>
-              <div className="grid grid-cols-2 gap-2">
-                <input name="nextExamSubject" placeholder="Subject (e.g. Physics)" required onChange={handleChange} className="bg-white p-3 rounded-xl outline-none" />
-                <input name="daysUntilExam" type="number" placeholder="Days Left" required onChange={handleChange} className="bg-white p-3 rounded-xl outline-none" />
+                <input 
+                  name="currentTaskSubject" 
+                  placeholder="Subject (e.g. Math)" 
+                  required 
+                  onChange={handleChange} 
+                  className="bg-white text-gray-900 placeholder-gray-400 p-3 rounded-xl outline-none border border-gray-100 focus:border-[#8FB996]" 
+                />
+                <input 
+                  name="currentTaskName" 
+                  placeholder="Topic (e.g. Calculus II)" 
+                  required 
+                  onChange={handleChange} 
+                  className="bg-white text-gray-900 placeholder-gray-400 p-3 rounded-xl outline-none border border-gray-100 focus:border-[#8FB996]" 
+                />
               </div>
             </div>
           </div>

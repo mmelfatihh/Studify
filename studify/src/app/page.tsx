@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { BookOpen, AlertTriangle, TrendingUp, Flame, LogOut, Settings } from "lucide-react";
+import { BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -15,10 +15,17 @@ export default function Home() {
 
   // --- DYNAMIC DATA STATE ---
   const [profile, setProfile] = useState({ name: "Student", major: "General" });
-  const [dashboardData, setDashboardData] = useState({
-    activeTask: { subject: "No Task", title: "Set up your profile" },
-    nextExam: { subject: "No Exams", daysLeft: "0" }
+  
+  // 1. Task comes from Database (Synced across devices)
+  const [activeTask, setActiveTask] = useState({ subject: "No Task", title: "Set up your profile" });
+  
+  // 2. Exam comes from Local Storage (Your personal widget)
+  const [examData, setExamData] = useState({ 
+    subject: "Set Goal", 
+    daysLeft: 0, 
+    prepLevel: 50 
   });
+
   const [attendance, setAttendance] = useState({ skipsLeft: 0, isSafe: true });
 
   useEffect(() => {
@@ -29,26 +36,24 @@ export default function Home() {
       }
       setUser(currentUser);
 
-      // 1. FETCH PROFILE (Name/Major)
+      // A. FETCH PROFILE & ACTIVE TASK (Firebase)
       const profileSnap = await getDoc(doc(db, "users", currentUser.uid));
       if (profileSnap.exists()) {
         setProfile(profileSnap.data() as any);
       } else {
-        // If no profile exists, redirect to setup!
         router.push("/setup");
       }
 
-      // 2. FETCH DASHBOARD CARDS (Task/Exam)
       const dashSnap = await getDoc(doc(db, "users", currentUser.uid, "dashboard", "data"));
       if (dashSnap.exists()) {
-        setDashboardData(dashSnap.data() as any);
+        const data = dashSnap.data();
+        if (data.activeTask) setActiveTask(data.activeTask);
       }
 
-      // 3. FETCH REAL ATTENDANCE DATA
+      // B. FETCH ATTENDANCE (Firebase)
       const attSnap = await getDoc(doc(db, "users", currentUser.uid, "attendance", "stats"));
       if (attSnap.exists()) {
         const d = attSnap.data();
-        // Calculate safe skips logic again
         const currentPct = (d.attended / d.total) * 100;
         const safeSkips = Math.floor((d.attended / (d.required / 100)) - d.total);
         setAttendance({
@@ -56,6 +61,23 @@ export default function Home() {
           isSafe: currentPct >= d.required
         });
       }
+
+      // C. FETCH EXAM DATA (Local Storage - The Fix!)
+      const savedSubject = localStorage.getItem("examSubject");
+      const savedDate = localStorage.getItem("examDate");
+      const savedPrep = localStorage.getItem("examPrep");
+
+      let days = 0;
+      if (savedDate) {
+        const diff = new Date(savedDate).getTime() - new Date().getTime();
+        days = Math.ceil(diff / (1000 * 3600 * 24));
+      }
+
+      setExamData({
+        subject: savedSubject || "No Exam Set",
+        daysLeft: days > 0 ? days : 0,
+        prepLevel: savedPrep ? parseInt(savedPrep) : 50
+      });
 
       setLoading(false);
     });
@@ -65,6 +87,14 @@ export default function Home() {
   const handleLogout = async () => {
     await signOut(auth);
     router.push("/login");
+  };
+
+  // Helper to get the color for the Dashboard Widget
+  const getExamTheme = () => {
+    const level = examData.prepLevel;
+    if (level < 30) return "bg-[#ff6b6b] text-white"; // Red
+    if (level < 70) return "bg-[#feca57] text-[#2D3436]"; // Orange
+    return "bg-[#1dd1a1] text-white"; // Green
   };
 
   if (loading) return <div className="min-h-screen bg-[#FDFBF7]" />;
@@ -86,7 +116,6 @@ export default function Home() {
         </div>
         
         <div className="flex items-center gap-3">
-           {/* Edit Profile Button */}
            <Link href="/setup">
             <button className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-300">
               <Settings size={18} />
@@ -99,7 +128,7 @@ export default function Home() {
         </div>
       </motion.div>
 
-      {/* HERO: ACTIVE TASK (Now Real!) */}
+      {/* HERO: ACTIVE TASK */}
       <motion.div 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -108,7 +137,7 @@ export default function Home() {
       >
         <div className="absolute top-4 left-0 w-full h-full bg-[#E8E8E4] rounded-[30px] shadow-sm transform scale-95 opacity-60 z-0"></div>
 
-<Link href="/schedule">
+        <Link href="/schedule">
         <motion.div 
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -118,13 +147,12 @@ export default function Home() {
             <div className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-2xl">
               <span className="text-white font-bold text-sm">Now Active</span>
             </div>
-            {/* We could add a time field to Setup later, keeping it static for now */}
             <span className="text-white/80 font-medium">Session 1</span>
           </div>
 
           <div>
-            <h2 className="text-white text-3xl font-bold mb-2">{dashboardData.activeTask.subject}</h2>
-            <p className="text-white/90 text-lg">{dashboardData.activeTask.title}</p>
+            <h2 className="text-white text-3xl font-bold mb-2">{activeTask.subject}</h2>
+            <p className="text-white/90 text-lg">{activeTask.title}</p>
           </div>
 
           <Link href="/focus" className="w-full">
@@ -140,29 +168,33 @@ export default function Home() {
       {/* WIDGETS */}
       <div className="grid grid-cols-2 gap-4">
         
-        {/* Widget 1: REAL Exam Pulse */}
+        {/* Widget 1: REAL Exam Pulse (Now Smart!) */}
         <Link href="/exam">
           <motion.div 
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ delay: 0.2, ...springTransition }}
-            className="bg-[#FFB7B2] rounded-[25px] p-5 h-48 flex flex-col justify-between shadow-lg cursor-pointer hover:scale-105"
+            className={`rounded-[25px] p-5 h-48 flex flex-col justify-between shadow-lg cursor-pointer hover:scale-105 transition-colors duration-500 ${getExamTheme()}`}
           >
-            <div className="flex justify-between items-center text-white/80">
+            <div className="flex justify-between items-center opacity-80">
               <span className="font-semibold text-sm">Exam Pulse</span>
-              <AlertTriangle size={18} />
+              {examData.prepLevel > 70 ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
             </div>
             <div>
-              <h3 className="text-white text-2xl font-bold leading-tight mb-1">{dashboardData.nextExam.subject}</h3>
-              <p className="text-white/70 text-sm">{dashboardData.nextExam.daysLeft} Days Left</p>
+              <h3 className="text-2xl font-bold leading-tight mb-1 truncate">{examData.subject}</h3>
+              <p className="opacity-90 text-sm">{examData.daysLeft} Days Left</p>
             </div>
-            <div className="w-full bg-white/30 h-2 rounded-full overflow-hidden">
-              <div className="h-full w-[40%] bg-white rounded-full"></div>
+            {/* Progress Bar */}
+            <div className="w-full bg-black/10 h-2 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-white/90 transition-all duration-1000" 
+                style={{ width: `${examData.prepLevel}%` }}
+              ></div>
             </div>
           </motion.div>
         </Link>
 
-        {/* Widget 2: REAL Attendance Data */}
+        {/* Widget 2: Attendance Data */}
         <Link href="/attendance">
           <motion.div 
             initial={{ x: 20, opacity: 0 }}

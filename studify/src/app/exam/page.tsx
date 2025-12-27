@@ -1,42 +1,58 @@
 "use client";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { ArrowLeft, AlertCircle, CheckCircle, Edit3 } from "lucide-react";
+import { ArrowLeft, AlertCircle, CheckCircle, Edit3, Calendar } from "lucide-react";
 import Link from "next/link";
 
 export default function ExamPulse() {
-  // Load saved data or use defaults
   const [prepLevel, setPrepLevel] = useState(50);
-  const [subject, setSubject] = useState("Anatomy 101");
-  const [daysLeft, setDaysLeft] = useState("3");
+  const [subject, setSubject] = useState("Chemistry"); 
+  const [examDate, setExamDate] = useState(""); // We store the actual DATE now
+  const [daysLeft, setDaysLeft] = useState(0);
   const [isClient, setIsClient] = useState(false);
 
-  // 1. Load data from storage when the app starts
+  // 1. Load data
   useEffect(() => {
     setIsClient(true);
     const savedPrep = localStorage.getItem("examPrep");
     const savedSubject = localStorage.getItem("examSubject");
-    const savedDays = localStorage.getItem("examDays");
+    const savedDate = localStorage.getItem("examDate");
 
     if (savedPrep) setPrepLevel(parseInt(savedPrep));
     if (savedSubject) setSubject(savedSubject);
-    if (savedDays) setDaysLeft(savedDays);
+    
+    // Calculate days remaining if a date exists
+    if (savedDate) {
+      setExamDate(savedDate);
+      const diff = new Date(savedDate).getTime() - new Date().getTime();
+      const days = Math.ceil(diff / (1000 * 3600 * 24));
+      setDaysLeft(days > 0 ? days : 0);
+    }
   }, []);
 
-  // 2. Save data automatically whenever it changes
+  // 2. Save data automatically
   useEffect(() => {
     if (isClient) {
       localStorage.setItem("examPrep", prepLevel.toString());
       localStorage.setItem("examSubject", subject);
-      localStorage.setItem("examDays", daysLeft);
+      localStorage.setItem("examDate", examDate);
     }
-  }, [prepLevel, subject, daysLeft, isClient]);
+  }, [prepLevel, subject, examDate, isClient]);
 
-  // LOGIC: Determine color based on prep level
+  // Update days left whenever date changes
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setExamDate(newDate);
+    
+    const diff = new Date(newDate).getTime() - new Date().getTime();
+    const days = Math.ceil(diff / (1000 * 3600 * 24));
+    setDaysLeft(days > 0 ? days : 0);
+  };
+
   const getColor = () => {
-    if (prepLevel < 30) return "bg-[#ff6b6b]"; // Red
-    if (prepLevel < 70) return "bg-[#feca57]"; // Orange
-    return "bg-[#1dd1a1]"; // Green
+    if (prepLevel < 30) return "bg-[#ff6b6b]";
+    if (prepLevel < 70) return "bg-[#feca57]";
+    return "bg-[#1dd1a1]";
   };
 
   const getMessage = () => {
@@ -45,7 +61,7 @@ export default function ExamPulse() {
     return "You're Ready";
   };
 
-  if (!isClient) return null; // Prevent hydration mismatch
+  if (!isClient) return null;
 
   return (
     <div className={`min-h-screen w-full flex flex-col px-6 py-8 transition-colors duration-1000 ease-in-out ${getColor()}`}>
@@ -67,8 +83,8 @@ export default function ExamPulse() {
         className="bg-white rounded-[40px] p-8 shadow-2xl flex flex-col items-center text-center space-y-6"
       >
         
-        {/* EDITABLE TITLE & DAYS */}
-        <div className="w-full space-y-2">
+        {/* EDITABLE TITLE & DATE PICKER */}
+        <div className="w-full space-y-4">
           <div className="relative group">
             <input 
               value={subject}
@@ -79,19 +95,24 @@ export default function ExamPulse() {
             <Edit3 className="absolute top-2 right-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" size={16} />
           </div>
           
-          <div className="flex justify-center items-center gap-2">
-            <span className="text-gray-400 font-medium">Exam in</span>
-            <input 
-              type="number"
-              value={daysLeft}
-              onChange={(e) => setDaysLeft(e.target.value)}
-              className="text-gray-400 font-medium w-12 text-center bg-gray-50 rounded focus:bg-white focus:ring-2 ring-gray-200 outline-none"
-            />
-            <span className="text-gray-400 font-medium">Days</span>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
+              <Calendar size={18} className="text-gray-400" />
+              {/* This is the new Date Picker */}
+              <input 
+                type="date"
+                value={examDate}
+                onChange={handleDateChange}
+                className="bg-transparent text-gray-600 font-medium outline-none text-sm uppercase tracking-wide"
+              />
+            </div>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              {daysLeft} Days Remaining
+            </span>
           </div>
         </div>
 
-        {/* THE METER VISUAL */}
+        {/* VISUAL METER */}
         <div className="relative w-full h-64 bg-gray-100 rounded-[30px] flex items-end justify-center overflow-hidden border-4 border-white shadow-inner">
           <motion.div 
             animate={{ height: `${prepLevel}%` }}
