@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, AlertTriangle, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Clock, AlertTriangle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-// SAFE IMPORT: Goes up one level to src, then into components
-import { ThemeProvider } from "../components/ThemeProvider"; 
+import { ThemeProvider } from "@/components/ThemeProvider"; // Import the provider
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#18181B",
+  themeColor: "#18181B", // Updated for Dark Mode compatibility
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

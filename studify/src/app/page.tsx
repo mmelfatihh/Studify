@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings, User, Edit2, PlayCircle } from "lucide-react";
+// FIX: Added ArrowLeft to this import list
+import { BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings, User, Edit2, PlayCircle, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -275,6 +276,7 @@ export default function Home() {
               <p className="text-sm opacity-70">Test yourself under pressure.</p>
             </div>
           </div>
+          {/* THIS WAS THE CULPRIT: ArrowLeft is now imported! */}
           <ArrowLeft size={20} className="rotate-180" />
         </motion.div>
       </Link>
