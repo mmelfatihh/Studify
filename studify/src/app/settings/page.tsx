@@ -2,7 +2,8 @@
 import { motion } from "framer-motion";
 import { ArrowLeft, Moon, Sun, LogOut, RotateCcw } from "lucide-react";
 import Link from "next/link";
-import { useTheme } from "@/components/ThemeProvider";
+// SAFE IMPORT: Goes up two levels to src, then into components
+import { useTheme } from "../../components/ThemeProvider";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebase";
 import { useRouter } from "next/navigation";

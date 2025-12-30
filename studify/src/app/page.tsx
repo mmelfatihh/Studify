@@ -5,7 +5,7 @@ import { BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings, User, Edit2
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore"; // Added setDoc for saving edits
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/firebase";
 
 export default function Home() {
