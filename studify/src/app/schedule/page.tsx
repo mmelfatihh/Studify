@@ -102,7 +102,8 @@ export default function SmartPlanner() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#18181B] px-6 pb-8 safe-top flex flex-col transition-colors duration-500">
+    <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#18181B] safe-top flex flex-col transition-colors duration-500">
+      <div className="flex-1 flex flex-col px-6 pb-8 w-full md:max-w-2xl md:mx-auto">
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
         <Link href="/">
@@ -153,7 +154,7 @@ export default function SmartPlanner() {
             </div>
             <button onClick={() => setGenerated(false)} className="text-xs font-bold text-gray-400 hover:text-[#2D3436] dark:hover:text-white">RESET</button>
           </div>
-          <div className="space-y-4 pb-20 overflow-y-auto hide-scrollbar">
+          <div className="pb-20 overflow-y-auto hide-scrollbar grid gap-4 md:grid-cols-2">
             <AnimatePresence>
               {schedule.map((item, index) => (
                 <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className={`relative p-6 rounded-[30px] ${getCardColor(item.type)} shadow-sm flex items-center justify-between border-2 border-transparent`}>
@@ -175,6 +176,7 @@ export default function SmartPlanner() {
           </div>
         </motion.div>
       )}
+      </div>
     </div>
   );
 }

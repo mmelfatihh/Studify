@@ -140,7 +140,8 @@ export default function AttendanceCalculator() {
   );
 
   return (
-    <div className="min-h-screen w-full bg-[#FDFBF7] dark:bg-[#1C1917] flex flex-col px-6 pb-12 safe-top font-sans transition-colors duration-500">
+    <div className="min-h-screen w-full bg-[#FDFBF7] dark:bg-[#1C1917] safe-top font-sans transition-colors duration-500">
+      <div className="flex flex-col px-6 pb-12 w-full md:max-w-xl md:mx-auto">
 
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
@@ -492,6 +493,7 @@ export default function AttendanceCalculator() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }

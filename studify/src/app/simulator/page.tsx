@@ -72,10 +72,10 @@ export default function Simulator() {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-1000 ${isPlaying ? 'bg-[#FDFBF7] dark:bg-[#1C1917]' : 'bg-[#FDFBF7] dark:bg-[#1C1917]'}`}>
-      
+
       {/* HEADER (Hidden during exam) */}
       {!isPlaying && (
-        <div className="px-6 pb-8 safe-top flex justify-between items-center">
+        <div className="px-6 pb-4 safe-top flex justify-between items-center md:max-w-xl md:mx-auto md:w-full">
           <Link href="/">
             <button className="bg-white dark:bg-[#292524] p-3 rounded-full shadow-sm text-gray-600 dark:text-gray-300 hover:scale-105 transition-all">
               <ArrowLeft size={24} />
@@ -90,7 +90,7 @@ export default function Simulator() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex-1 flex flex-col justify-center px-6 space-y-8"
+          className="flex-1 flex flex-col justify-center px-6 space-y-8 md:max-w-xl md:mx-auto md:w-full"
         >
           <div className="text-center space-y-2">
             <ShieldCheck size={48} className="mx-auto text-[#2D3436] dark:text-[#E7E5E4] mb-4" />

@@ -70,8 +70,9 @@ export default function ExamPulse() {
   if (!isClient) return null;
 
   return (
-    <div className={`min-h-screen w-full flex flex-col px-6 pb-8 safe-top transition-colors duration-1000 ease-in-out ${getBgColor()}`}>
-      
+    <div className={`min-h-screen w-full flex flex-col safe-top transition-colors duration-1000 ease-in-out ${getBgColor()}`}>
+      <div className="flex-1 flex flex-col px-6 pb-8 w-full md:max-w-xl md:mx-auto">
+
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
         <Link href="/">
@@ -161,6 +162,7 @@ export default function ExamPulse() {
         </div>
 
       </motion.div>
+      </div>
     </div>
   );
 }

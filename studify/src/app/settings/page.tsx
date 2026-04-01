@@ -25,7 +25,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen w-full px-6 pb-8 safe-top transition-colors duration-500 bg-[#FDFBF7] dark:bg-[#18181B]">
+    <div className="min-h-screen w-full safe-top transition-colors duration-500 bg-[#FDFBF7] dark:bg-[#18181B]">
+      <div className="px-6 pb-8 w-full md:max-w-lg md:mx-auto">
       
       {/* HEADER */}
       <div className="flex items-center gap-4 mb-10">
@@ -91,6 +92,7 @@ export default function SettingsPage() {
         </button>
 
       </motion.div>
+      </div>
     </div>
   );
 }

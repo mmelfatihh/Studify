@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/ThemeProvider"; // Import the provider
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { Sidebar } from "@/components/Sidebar";
+import { MainWrapper } from "@/components/MainWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,7 +36,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} transition-colors duration-500 ease-in-out bg-[#FDFBF7] dark:bg-[#18181B]`}>
         <ThemeProvider>
-          {children}
+          <Sidebar />
+          <MainWrapper>
+            {children}
+          </MainWrapper>
         </ThemeProvider>
       </body>
     </html>
