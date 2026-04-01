@@ -133,6 +133,7 @@ export default function ExamPulse() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 220, damping: 22 }}
             className="flex-1 flex flex-col items-center justify-center text-center gap-4"
           >
             <Zap size={56} className="text-gray-200 dark:text-[#3F3F46]" />
@@ -154,10 +155,10 @@ export default function ExamPulse() {
                 return (
                   <motion.button
                     key={exam.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: i * 0.07 }}
+                    initial={{ opacity: 0, y: 18, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.93 }}
+                    transition={{ delay: i * 0.07, type: "spring", stiffness: 220, damping: 22 }}
                     onClick={() => setSelected(exam)}
                     className={`relative w-full p-6 rounded-[28px] border-2 border-transparent ${theme.bg} ${theme.dark} ${theme.text} ${theme.darkText} text-left shadow-md hover:scale-[1.02] transition-all`}
                   >
@@ -189,9 +190,10 @@ export default function ExamPulse() {
         {showAdd && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center" onClick={() => setShowAdd(false)}>
             <motion.div
-              initial={{ y: 80, opacity: 0 }}
+              initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-[#27272A] w-full max-w-md p-6 rounded-t-[30px] sm:rounded-[30px] shadow-2xl space-y-4"
             >
@@ -242,9 +244,10 @@ export default function ExamPulse() {
         {selected && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center" onClick={() => setSelected(null)}>
             <motion.div
-              initial={{ y: 80, opacity: 0 }}
+              initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 28 }}
               onClick={(e) => e.stopPropagation()}
               className="bg-white dark:bg-[#27272A] w-full max-w-md p-6 rounded-t-[30px] sm:rounded-[30px] shadow-2xl space-y-5"
             >
