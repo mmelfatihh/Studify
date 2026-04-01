@@ -115,7 +115,7 @@ export default function SmartPlanner() {
       </div>
 
       {!generated ? (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 flex flex-col justify-center space-y-10">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="flex-1 flex flex-col justify-center space-y-10">
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold text-[#2D3436] dark:text-white">Draft Your Day</h1>
             <p className="text-gray-400">Tell us your availability, we'll do the rest.</p>
@@ -157,7 +157,7 @@ export default function SmartPlanner() {
           <div className="pb-20 overflow-y-auto hide-scrollbar grid gap-4 md:grid-cols-2">
             <AnimatePresence>
               {schedule.map((item, index) => (
-                <motion.div key={item.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }} className={`relative p-6 rounded-[30px] ${getCardColor(item.type)} shadow-sm flex items-center justify-between border-2 border-transparent`}>
+                <motion.div key={item.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04, duration: 0.45, ease: [0.16, 1, 0.3, 1] }} className={`relative p-6 rounded-[30px] ${getCardColor(item.type)} shadow-sm flex items-center justify-between border-2 border-transparent`}>
                   <div className="flex items-center gap-4">
                     <div className="flex flex-col items-center justify-center bg-white/20 backdrop-blur-sm w-16 h-16 rounded-[20px] text-current">
                       <span className="font-bold text-sm">{item.time}</span>

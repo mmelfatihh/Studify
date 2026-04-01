@@ -131,6 +131,7 @@ export default function AttendanceCalculator() {
     ? "stroke-white dark:stroke-emerald-400"
     : "stroke-white dark:stroke-red-400";
 
+  const E = [0.16, 1, 0.3, 1] as const;
   const spring = { type: "spring" as const, stiffness: 300, damping: 30 };
 
   if (loading) return (
@@ -185,9 +186,9 @@ export default function AttendanceCalculator() {
       {/* EMPTY STATE */}
       {subjects.length === 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ duration: 0.5, ease: E, delay: 0.08 }}
           className="flex-1 flex flex-col items-center justify-center gap-4 text-center py-20"
         >
           <motion.div
@@ -222,7 +223,7 @@ export default function AttendanceCalculator() {
                   key={s.id}
                   layout
                   initial={{ opacity: 0, y: 24, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1, transition: { ...spring, delay: i * 0.05 } }}
+                  animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.45, ease: E, delay: i * 0.05 } }}
                   exit={{ opacity: 0, x: -30, scale: 0.9, transition: { duration: 0.2 } }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedId(s.id)}
@@ -273,9 +274,9 @@ export default function AttendanceCalculator() {
             onClick={() => { setIsAdding(false); setNewName(""); }}
           >
             <motion.div
-              initial={{ y: 80, opacity: 0 }}
+              initial={{ y: 40, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 80, opacity: 0 }}
+              exit={{ y: 40, opacity: 0 }}
               transition={spring}
               onClick={e => e.stopPropagation()}
               className="bg-white dark:bg-[#292524] w-full max-w-md p-6 rounded-t-[30px] sm:rounded-[30px] shadow-2xl border dark:border-[#44403C] space-y-4"
