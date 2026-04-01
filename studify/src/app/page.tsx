@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings, User, Edit2, PlayCircle, ArrowLeft } from "lucide-react";
+import { BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings, User, Edit2, PlayCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -15,7 +15,7 @@ export default function Home() {
 
   // --- DYNAMIC DATA ---
   const [profile, setProfile] = useState({ name: "Student", major: "General" });
-  const [activeTask, setActiveTask] = useState({ subject: "No Task", title: "Set up your profile" });
+  const [activeTask, setActiveTask] = useState({ subject: "Free time", title: "Enjoy your day" });
   const [examData, setExamData] = useState({ subject: "Set Goal", daysLeft: 0, prepLevel: 50 });
   const [attendance, setAttendance] = useState({ skipsLeft: 0, isSafe: true });
 
@@ -80,8 +80,11 @@ export default function Home() {
   // --- SAVE QUICK EDIT ---
   const saveTaskEdit = async () => {
     if (!user) return;
-    const newTask = { subject: editForm.subject, title: editForm.title };
-    setActiveTask(newTask); // Optimistic update
+    const newTask = {
+      subject: editForm.subject.trim() || "Free time",
+      title: editForm.title.trim() || "Enjoy your day",
+    };
+    setActiveTask(newTask);
     setIsEditingTask(false);
     await setDoc(doc(db, "users", user.uid, "dashboard", "data"), { activeTask: newTask }, { merge: true });
   };
@@ -162,6 +165,47 @@ export default function Home() {
           <Link href="/schedule" className="block group">
             <h2 className="text-3xl font-bold mb-2 group-hover:scale-105 transition-transform origin-left dark:text-emerald-200">{activeTask.subject}</h2>
             <p className="opacity-90 text-lg dark:text-gray-400">{activeTask.title}</p>
+
+            {/* Tap hint micro-animation */}
+            <div className="mt-3 flex items-center gap-2 overflow-hidden">
+              <svg width="100" height="22" viewBox="0 0 100 22" fill="none">
+                <motion.path
+                  d="M4 16 C20 16 45 4 82 10 L74 5 L82 10 L74 15"
+                  stroke="rgba(255,255,255,0.55)"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  animate={{
+                    pathLength: [0, 1, 1, 0],
+                    opacity:    [0, 0.6, 0.6, 0],
+                  }}
+                  transition={{
+                    duration: 2.4,
+                    times: [0, 0.5, 0.78, 1],
+                    repeat: Infinity,
+                    repeatDelay: 2,
+                    ease: "easeInOut",
+                  }}
+                />
+              </svg>
+              <motion.span
+                animate={{
+                  opacity: [0, 0, 0.55, 0.55, 0],
+                  x:       [0, -6,  0,    0,   6],
+                }}
+                transition={{
+                  duration: 2.4,
+                  times: [0, 0.12, 0.45, 0.78, 1],
+                  repeat: Infinity,
+                  repeatDelay: 2,
+                  ease: "easeInOut",
+                }}
+                className="text-white/55 text-[11px] font-bold tracking-widest uppercase whitespace-nowrap"
+              >
+                Tap to plan your day
+              </motion.span>
+            </div>
           </Link>
 
           <Link href="/focus" className="w-full">
