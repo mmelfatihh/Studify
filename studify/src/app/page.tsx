@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings, User, Edit2, PlayCircle, ArrowLeft, ArrowRight } from "lucide-react";
+import { BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings, User, Edit2, PlayCircle, ArrowLeft, ArrowRight, Flame } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
@@ -18,6 +18,7 @@ export default function Home() {
   const [activeTask, setActiveTask] = useState({ subject: "Free time", title: "Enjoy your day" });
   const [examData, setExamData] = useState({ subject: "Set Goal", daysLeft: 0, prepLevel: 50 });
   const [attendance, setAttendance] = useState({ skipsLeft: 0, isSafe: true });
+  const [streak, setStreak] = useState(0);
 
   // --- EDIT MODAL STATE ---
   const [isEditingTask, setIsEditingTask] = useState(false);
@@ -42,6 +43,9 @@ export default function Home() {
         if (data.activeTask) setActiveTask(data.activeTask);
       }
 
+      const streakSnap = await getDoc(doc(db, "users", currentUser.uid, "streak", "data"));
+      if (streakSnap.exists()) setStreak(streakSnap.data().current ?? 0);
+
       const attSnap = await getDoc(doc(db, "users", currentUser.uid, "attendance", "subjects"));
       if (attSnap.exists() && attSnap.data().list?.length > 0) {
         const list = attSnap.data().list;
@@ -57,20 +61,34 @@ export default function Home() {
         });
       }
 
-      // B. FETCH LOCAL EXAM DATA
-      const savedSubject = localStorage.getItem("examSubject");
-      const savedDate = localStorage.getItem("examDate");
-      const savedPrep = localStorage.getItem("examPrep");
-      let days = 0;
-      if (savedDate) {
-        const diff = new Date(savedDate).getTime() - new Date().getTime();
-        days = Math.ceil(diff / (1000 * 3600 * 24));
+      // B. FETCH EXAM DATA from Firebase (soonest upcoming exam)
+      const examSnap = await getDoc(doc(db, "users", currentUser.uid, "exams", "data"));
+      if (examSnap.exists() && examSnap.data().list?.length > 0) {
+        const list: { subject: string; date: string; prepLevel: number }[] = examSnap.data().list;
+        const withDays = list.map((e) => {
+          const diff = new Date(e.date).getTime() - new Date().getTime();
+          const d = Math.ceil(diff / (1000 * 3600 * 24));
+          return { ...e, daysLeft: d > 0 ? d : 0 };
+        });
+        const soonest = withDays.sort((a, b) => {
+          if (a.daysLeft === 0 && b.daysLeft === 0) return 0;
+          if (a.daysLeft === 0) return 1;
+          if (b.daysLeft === 0) return -1;
+          return a.daysLeft - b.daysLeft;
+        })[0];
+        setExamData({ subject: soonest.subject, daysLeft: soonest.daysLeft, prepLevel: soonest.prepLevel });
+      } else {
+        // Fall back to localStorage for backwards compat
+        const savedSubject = localStorage.getItem("examSubject");
+        const savedDate = localStorage.getItem("examDate");
+        const savedPrep = localStorage.getItem("examPrep");
+        let days = 0;
+        if (savedDate) {
+          const diff = new Date(savedDate).getTime() - new Date().getTime();
+          days = Math.ceil(diff / (1000 * 3600 * 24));
+        }
+        setExamData({ subject: savedSubject || "No Exam Set", daysLeft: days > 0 ? days : 0, prepLevel: savedPrep ? parseInt(savedPrep) : 50 });
       }
-      setExamData({
-        subject: savedSubject || "No Exam Set",
-        daysLeft: days > 0 ? days : 0,
-        prepLevel: savedPrep ? parseInt(savedPrep) : 50
-      });
 
       setLoading(false);
     });
@@ -113,7 +131,20 @@ export default function Home() {
         className="flex items-center justify-between mb-8 md:max-w-5xl md:mx-auto md:w-full"
       >
         <div>
-          <h1 className="text-3xl font-bold text-[#4A4E69] dark:text-[#E7E5E4]">Hi, {profile.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-[#4A4E69] dark:text-[#E7E5E4]">Hi, {profile.name}</h1>
+            {streak > 0 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400 px-2 py-0.5 rounded-full"
+              >
+                <Flame size={13} />
+                <span className="text-xs font-black">{streak}</span>
+              </motion.div>
+            )}
+          </div>
           <p className="text-[#9A8C98] dark:text-gray-500 font-medium text-sm">{profile.major}</p>
         </div>
         {/* Icon buttons — hidden on desktop (sidebar handles navigation) */}

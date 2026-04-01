@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import {
   LayoutDashboard, Calendar, Zap, BarChart3,
-  Coffee, PlayCircle, Settings, Moon, Sun, LogOut,
+  Coffee, PlayCircle, Settings, Moon, Sun, LogOut, GraduationCap,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { onAuthStateChanged, signOut } from "firebase/auth";
@@ -19,6 +19,7 @@ const NAV = [
   { href: "/attendance",  label: "Bunk Budget",   icon: BarChart3 },
   { href: "/focus",       label: "Focus Room",    icon: Coffee },
   { href: "/simulator",   label: "Simulator",     icon: PlayCircle },
+  { href: "/grades",      label: "GPA Tracker",   icon: GraduationCap },
 ];
 
 const NO_SIDEBAR = ["/login", "/setup", "/focus"];

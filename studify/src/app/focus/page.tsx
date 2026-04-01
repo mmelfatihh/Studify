@@ -1,5 +1,5 @@
 "use client";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import { X, Play, Pause } from "lucide-react";
 import Link from "next/link";
@@ -7,20 +7,36 @@ import { auth, db } from "@/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection } from "firebase/firestore";
 
-// Helper to get initials (e.g. "John Doe" -> "JD")
-const getInitials = (name: string) => {
-  return name ? name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase() : "??";
+const MAX_VISIBLE = 5;
+
+const getInitials = (name: string) =>
+  name ? name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase() : "??";
+
+const updateStreak = async (uid: string) => {
+  const ref = doc(db, "users", uid, "streak", "data");
+  const snap = await getDoc(ref);
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  if (snap.exists()) {
+    const d = snap.data();
+    if (d.lastStudied === today) return;
+    const newCurrent = d.lastStudied === yesterday ? d.current + 1 : 1;
+    await setDoc(ref, {
+      lastStudied: today,
+      current: newCurrent,
+      longest: Math.max(d.longest || 0, newCurrent),
+    });
+  } else {
+    await setDoc(ref, { lastStudied: today, current: 1, longest: 1 });
+  }
 };
 
 export default function FocusRoom() {
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [otherUsers, setOtherUsers] = useState<any[]>([]); // Real people!
-  
-  // TIMER STATE
+  const [otherUsers, setOtherUsers] = useState<any[]>([]);
   const [seconds, setSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
 
-  // --- 1. SETUP THE ROOM (JOIN & LISTEN) ---
   useEffect(() => {
     let unsubscribeAuth: any;
     let unsubscribeRoom: any;
@@ -29,43 +45,39 @@ export default function FocusRoom() {
       if (user) {
         setCurrentUser(user);
 
-        // A. GET MY PROFILE DATA (So I can show it to others)
-        // We need to know what Subject I am studying to display it
         const dashSnap = await getDoc(doc(db, "users", user.uid, "dashboard", "data"));
         const profileSnap = await getDoc(doc(db, "users", user.uid));
-        
-        const mySubject = dashSnap.exists() ? (dashSnap.data()?.activeTask?.subject ?? "Focusing") : "Focusing";
+
+        const mySubject = dashSnap.exists()
+          ? (dashSnap.data()?.activeTask?.subject ?? "Focusing")
+          : "Focusing";
         const myName = profileSnap.exists() ? profileSnap.data().name : "Student";
 
-        // B. ADD ME TO THE 'ACTIVE_ROOM' COLLECTION
-        // We assign random coordinates so we pop up in a random spot
         const myRoomRef = doc(db, "focus_room", user.uid);
         await setDoc(myRoomRef, {
           id: user.uid,
           name: myName,
           subject: mySubject,
-          x: Math.random() * 80 + 10, // Keep within 10-90% of screen
-          y: Math.random() * 80 + 10,
+          x: Math.random() * 70 + 10,
+          y: Math.random() * 70 + 10,
           color: Math.random() > 0.5 ? "bg-purple-400/30" : "bg-blue-400/30",
-          joinedAt: Date.now()
+          joinedAt: Date.now(),
         });
 
-        // C. LISTEN FOR OTHERS (Real-time!)
+        // Update streak on join
+        await updateStreak(user.uid);
+
         const roomCollection = collection(db, "focus_room");
         unsubscribeRoom = onSnapshot(roomCollection, (snapshot) => {
           const users: any[] = [];
           snapshot.forEach((doc) => {
-            // Only add others (not myself)
-            if (doc.id !== user.uid) {
-              users.push(doc.data());
-            }
+            if (doc.id !== user.uid) users.push(doc.data());
           });
           setOtherUsers(users);
         });
       }
     });
 
-    // CLEANUP: When I leave the page, remove me from the room!
     return () => {
       if (auth.currentUser) {
         deleteDoc(doc(db, "focus_room", auth.currentUser.uid));
@@ -75,7 +87,6 @@ export default function FocusRoom() {
     };
   }, []);
 
-  // --- TIMER LOGIC ---
   useEffect(() => {
     let interval: any = null;
     if (isActive) {
@@ -92,44 +103,62 @@ export default function FocusRoom() {
     return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const visibleUsers = otherUsers.slice(0, MAX_VISIBLE);
+  const overflowCount = Math.max(0, otherUsers.length - MAX_VISIBLE);
+
   return (
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-[#1a1a2e]">
-      
-      {/* BACKGROUND */}
-      <div className="absolute top-[-20%] left-[-20%] w-[50%] h-[50%] bg-purple-600/40 rounded-full blur-[120px] animate-pulse"></div>
-      <div className="absolute bottom-[-20%] right-[-20%] w-[50%] h-[50%] bg-blue-600/40 rounded-full blur-[120px] animate-pulse"></div>
-      
-      {/* --- REAL FLOATING USERS --- */}
-      {otherUsers.map((u) => (
-        <motion.div
-          key={u.id}
-          initial={{ x: `${u.x}vw`, y: `${u.y}vh`, opacity: 0 }}
-          animate={{ 
-            x: [`${u.x}vw`, `${u.x + 5}vw`, `${u.x - 5}vw`],
-            y: [`${u.y}vh`, `${u.y - 5}vh`, `${u.y + 5}vh`],
-            opacity: 1
-          }}
-          transition={{ duration: 10, repeat: Infinity, repeatType: "mirror" }}
-          className={`absolute flex flex-col items-center justify-center`}
-          style={{ left: 0, top: 0 }} // Positioning handled by motion
-        >
-          {/* THE BUBBLE */}
-          <div className={`h-24 w-24 rounded-full backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg ${u.color}`}>
-            <span className="text-white font-bold text-xl tracking-wider">
-              {getInitials(u.name)}
-            </span>
-          </div>
-          
-          {/* THE SUBJECT LABEL */}
-          <div className="mt-2 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/5">
-            <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest">
-              {u.subject}
-            </p>
-          </div>
-        </motion.div>
-      ))}
 
-      {/* --- MY CENTER BUBBLE --- */}
+      {/* BACKGROUND */}
+      <div className="absolute top-[-20%] left-[-20%] w-[50%] h-[50%] bg-purple-600/40 rounded-full blur-[120px] animate-pulse" />
+      <div className="absolute bottom-[-20%] right-[-20%] w-[50%] h-[50%] bg-blue-600/40 rounded-full blur-[120px] animate-pulse" />
+
+      {/* VISIBLE FLOATING USERS (capped at MAX_VISIBLE) */}
+      <AnimatePresence>
+        {visibleUsers.map((u) => (
+          <motion.div
+            key={u.id}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{
+              x: [`${u.x}vw`, `${u.x + 5}vw`, `${u.x - 5}vw`],
+              y: [`${u.y}vh`, `${u.y - 5}vh`, `${u.y + 5}vh`],
+              opacity: 1,
+              scale: 1,
+            }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 10, repeat: Infinity, repeatType: "mirror" }}
+            className="absolute flex flex-col items-center justify-center"
+            style={{ left: 0, top: 0 }}
+          >
+            <div className={`h-24 w-24 rounded-full backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg ${u.color}`}>
+              <span className="text-white font-bold text-xl tracking-wider">
+                {getInitials(u.name)}
+              </span>
+            </div>
+            <div className="mt-2 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/5">
+              <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest">
+                {u.subject}
+              </p>
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* OVERFLOW PILL */}
+      <AnimatePresence>
+        {overflowCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute top-16 right-8 z-50 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full"
+          >
+            <p className="text-white/80 text-xs font-bold">+{overflowCount} others studying</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* MY CENTER BUBBLE */}
       <motion.button
         onClick={() => setIsActive(!isActive)}
         initial={{ scale: 0 }}
@@ -158,15 +187,18 @@ export default function FocusRoom() {
           {isActive ? "You are in the Zone" : "Tap bubble to start"}
         </h1>
         <p className="text-white/40 text-sm mt-2">
-          {otherUsers.length === 0 
-            ? "You are the first one here." 
-            : `${otherUsers.length} others are focusing with you`}
+          {otherUsers.length === 0
+            ? "You are the first one here."
+            : `${otherUsers.length} other${otherUsers.length > 1 ? "s" : ""} focusing with you`}
         </p>
       </motion.div>
 
       {/* LEAVE BUTTON */}
       <Link href="/">
-        <button className="absolute right-8 z-50 text-white/50 hover:text-white hover:rotate-90 transition-all duration-300" style={{ top: 'max(32px, env(safe-area-inset-top, 0px))' }}>
+        <button
+          className="absolute right-8 z-50 text-white/50 hover:text-white hover:rotate-90 transition-all duration-300"
+          style={{ top: "max(32px, env(safe-area-inset-top, 0px))" }}
+        >
           <X size={32} />
         </button>
       </Link>
