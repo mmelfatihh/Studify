@@ -7,14 +7,11 @@ import { auth, db } from "@/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
-// ─── Animation primitives ───────────────────────────────────────────────────
-const E = [0.16, 1, 0.3, 1] as const;
-const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5, ease: E, delay },
-});
-const SHEET = { type: "spring" as const, stiffness: 300, damping: 30 };
+// ─── Animation system ───────────────────────────────────────────────────────
+const EASE = [0.22, 1, 0.36, 1] as const;
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07, delayChildren: 0.08 } } };
+const slideUp = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } } };
+const SHEET = { type: "spring" as const, stiffness: 280, damping: 28 };
 // ────────────────────────────────────────────────────────────────────────────
 
 interface Exam {
@@ -103,7 +100,7 @@ export default function ExamPulse() {
       <div className="flex-1 flex flex-col px-6 pb-8 w-full md:max-w-2xl md:mx-auto">
 
         {/* HEADER */}
-        <motion.div {...fadeUp(0)} className="flex justify-between items-center mb-8">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }} className="flex justify-between items-center mb-8">
           <Link href="/">
             <button className="bg-white dark:bg-[#27272A] p-3 rounded-full shadow-sm text-gray-600 dark:text-gray-200 active:scale-95 transition-transform">
               <ArrowLeft size={24} />
@@ -120,18 +117,19 @@ export default function ExamPulse() {
 
         {exams.length === 0 ? (
           <motion.div
-            {...fadeUp(0.08)}
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: EASE, delay: 0.08 }}
             className="flex-1 flex flex-col items-center justify-center text-center gap-4"
           >
             <motion.div
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="h-20 w-20 rounded-full bg-gray-100 dark:bg-[#27272A] flex items-center justify-center"
+              className="h-20 w-20 rounded-[24px] bg-[#feca57] flex items-center justify-center shadow-md"
             >
-              <Zap size={32} className="text-gray-300 dark:text-gray-600" />
+              <Zap size={32} className="text-white" />
             </motion.div>
             <h2 className="text-xl font-bold text-[#2D3436] dark:text-white">No exams tracked</h2>
-            <p className="text-gray-400 text-sm max-w-xs">Add your upcoming exams to track your prep and countdown.</p>
+            <p className="text-[#9A8C98] text-sm max-w-xs">Add your upcoming exams to track your prep and countdown.</p>
             <button
               onClick={() => setShowAdd(true)}
               className="mt-2 bg-[#2D3436] dark:bg-white text-white dark:text-[#2D3436] font-bold px-8 py-4 rounded-[20px] shadow-lg active:scale-[0.98] transition-transform"
@@ -140,17 +138,17 @@ export default function ExamPulse() {
             </button>
           </motion.div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <motion.div variants={stagger} initial="hidden" animate="show" className="grid gap-4 md:grid-cols-2">
             <AnimatePresence>
-              {exams.map((exam, i) => {
+              {exams.map((exam) => {
                 const days = getDaysLeft(exam.date);
                 const t = getExamTheme(exam.prepLevel);
                 return (
                   <motion.button
                     key={exam.id}
-                    {...fadeUp(0.08 + i * 0.05)}
+                    variants={slideUp}
                     whileTap={{ scale: 0.97 }}
-                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                    exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.18 } }}
                     onClick={() => setSelected(exam)}
                     className={`relative w-full p-6 rounded-[28px] border-2 border-transparent ${t.card} ${t.text} text-left shadow-md hover:brightness-105 transition-all duration-200`}
                   >
@@ -170,7 +168,7 @@ export default function ExamPulse() {
                 );
               })}
             </AnimatePresence>
-          </div>
+          </motion.div>
         )}
       </div>
 
