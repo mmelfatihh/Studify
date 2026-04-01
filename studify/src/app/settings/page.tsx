@@ -25,7 +25,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen w-full px-6 pb-8 pt-4 transition-colors duration-500 bg-[#FDFBF7] dark:bg-[#18181B]">
+    <div className="min-h-screen w-full px-6 pb-8 safe-top transition-colors duration-500 bg-[#FDFBF7] dark:bg-[#18181B]">
       
       {/* HEADER */}
       <div className="flex items-center gap-4 mb-10">

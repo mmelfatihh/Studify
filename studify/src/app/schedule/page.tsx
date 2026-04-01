@@ -102,7 +102,7 @@ export default function SmartPlanner() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#18181B] px-6 pb-8 pt-4 flex flex-col transition-colors duration-500">
+    <div className="min-h-screen bg-[#FDFBF7] dark:bg-[#18181B] px-6 pb-8 safe-top flex flex-col transition-colors duration-500">
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
         <Link href="/">

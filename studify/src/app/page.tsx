@@ -104,7 +104,7 @@ export default function Home() {
   const springTransition = { type: "spring", stiffness: 200, damping: 20 };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FDFBF7] dark:bg-[#1C1917] text-[#2D3436] dark:text-[#E7E5E4] px-6 pt-6 pb-6 font-sans transition-colors duration-500">
+    <div className="flex min-h-screen flex-col bg-[#FDFBF7] dark:bg-[#1C1917] text-[#2D3436] dark:text-[#E7E5E4] px-6 safe-top pb-6 font-sans transition-colors duration-500">
       
       {/* HEADER */}
       <motion.div 
