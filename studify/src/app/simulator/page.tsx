@@ -75,7 +75,7 @@ export default function Simulator() {
       
       {/* HEADER (Hidden during exam) */}
       {!isPlaying && (
-        <div className="px-6 py-8 flex justify-between items-center">
+        <div className="px-6 pb-8 pt-4 flex justify-between items-center">
           <Link href="/">
             <button className="bg-white dark:bg-[#292524] p-3 rounded-full shadow-sm text-gray-600 dark:text-gray-300 hover:scale-105 transition-all">
               <ArrowLeft size={24} />

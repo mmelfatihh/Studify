@@ -34,7 +34,7 @@ export default function FocusRoom() {
         const dashSnap = await getDoc(doc(db, "users", user.uid, "dashboard", "data"));
         const profileSnap = await getDoc(doc(db, "users", user.uid));
         
-        const mySubject = dashSnap.exists() ? dashSnap.data().activeTask.subject : "Focusing";
+        const mySubject = dashSnap.exists() ? (dashSnap.data()?.activeTask?.subject ?? "Focusing") : "Focusing";
         const myName = profileSnap.exists() ? profileSnap.data().name : "Student";
 
         // B. ADD ME TO THE 'ACTIVE_ROOM' COLLECTION
@@ -166,7 +166,7 @@ export default function FocusRoom() {
 
       {/* LEAVE BUTTON */}
       <Link href="/">
-        <button className="absolute top-8 right-8 z-50 text-white/50 hover:text-white hover:rotate-90 transition-all duration-300">
+        <button className="absolute right-8 z-50 text-white/50 hover:text-white hover:rotate-90 transition-all duration-300" style={{ top: 'max(32px, env(safe-area-inset-top, 0px))' }}>
           <X size={32} />
         </button>
       </Link>

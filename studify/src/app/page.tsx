@@ -42,14 +42,18 @@ export default function Home() {
         if (data.activeTask) setActiveTask(data.activeTask);
       }
 
-      const attSnap = await getDoc(doc(db, "users", currentUser.uid, "attendance", "stats"));
-      if (attSnap.exists()) {
-        const d = attSnap.data();
-        const currentPct = (d.attended / d.total) * 100;
-        const safeSkips = Math.floor((d.attended / (d.required / 100)) - d.total);
+      const attSnap = await getDoc(doc(db, "users", currentUser.uid, "attendance", "subjects"));
+      if (attSnap.exists() && attSnap.data().list?.length > 0) {
+        const list = attSnap.data().list;
+        const skipsPerSubject = list.map((s: any) =>
+          Math.max(0, Math.floor((s.attended / (s.required / 100)) - s.total))
+        );
+        const allSafe = list.every((s: any) =>
+          s.total > 0 && Math.round((s.attended / s.total) * 100) >= s.required
+        );
         setAttendance({
-          skipsLeft: Math.max(0, safeSkips),
-          isSafe: currentPct >= d.required
+          skipsLeft: Math.min(...skipsPerSubject),
+          isSafe: allSafe
         });
       }
 
@@ -97,7 +101,7 @@ export default function Home() {
   const springTransition = { type: "spring", stiffness: 200, damping: 20 };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FDFBF7] dark:bg-[#1C1917] text-[#2D3436] dark:text-[#E7E5E4] px-6 pt-12 pb-6 font-sans transition-colors duration-500">
+    <div className="flex min-h-screen flex-col bg-[#FDFBF7] dark:bg-[#1C1917] text-[#2D3436] dark:text-[#E7E5E4] px-6 pt-6 pb-6 font-sans transition-colors duration-500">
       
       {/* HEADER */}
       <motion.div 
