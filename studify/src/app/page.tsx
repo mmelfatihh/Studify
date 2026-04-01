@@ -199,7 +199,13 @@ export default function Home() {
                 transition={{ duration: 0.4, ease: EASE, delay: 0.3 }}
                 className="flex items-center gap-1 bg-orange-100 dark:bg-orange-900/30 text-orange-500 dark:text-orange-400 px-2 py-0.5 rounded-full"
               >
-                <Flame size={12} /><span className="text-[11px] font-black">{streak}</span>
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1], rotate: [-5, 5, -5] }}
+                  transition={{ duration: 1.4, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
+                >
+                  <Flame size={12} />
+                </motion.div>
+                <span className="text-[11px] font-black">{streak}</span>
               </motion.div>
             )}
           </div>
@@ -294,14 +300,26 @@ export default function Home() {
                     <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest mb-0.5">Next up</p>
                     <h3 className="text-xl font-black leading-tight truncate mb-1">{examData.subject}</h3>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-black">{examData.daysLeft}</span>
+                      {/* Days countdown ticks when low */}
+                      <motion.span
+                        key={examData.daysLeft}
+                        animate={examData.daysLeft <= 3 && examData.daysLeft > 0 ? { scale: [1, 1.12, 1] } : {}}
+                        transition={{ duration: 0.5, repeat: examData.daysLeft <= 3 ? Infinity : 0, repeatDelay: 2, ease: "easeInOut" }}
+                        className="text-3xl font-black"
+                      >{examData.daysLeft}</motion.span>
                       <span className="text-xs font-bold opacity-60">days left</span>
                     </div>
                   </div>
                   <div className="space-y-1">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-bold opacity-50">{examData.prepLevel}% ready</span>
-                      {examData.prepLevel > 70 ? <CheckCircle size={14} className="opacity-70" /> : <AlertTriangle size={14} className="opacity-70" />}
+                      {/* Icon pulses when underprepared */}
+                      <motion.div
+                        animate={examData.prepLevel < 70 ? { scale: [1, 1.3, 1], rotate: [0, -8, 8, 0] } : { scale: [1, 1.08, 1] }}
+                        transition={{ duration: 0.7, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
+                      >
+                        {examData.prepLevel > 70 ? <CheckCircle size={14} className="opacity-70" /> : <AlertTriangle size={14} className="opacity-70" />}
+                      </motion.div>
                     </div>
                     <div className="w-full bg-black/10 dark:bg-black/40 h-1.5 rounded-full overflow-hidden">
                       <div className="h-full bg-white/90 dark:bg-current rounded-full transition-all duration-700" style={{ width: `${examData.prepLevel}%` }} />
@@ -314,7 +332,15 @@ export default function Home() {
             {/* BUNK BUDGET */}
             <motion.div variants={slideUp} whileTap={{ scale: 0.97 }}>
               <Link href="/attendance">
-                <div className="bg-[#FFDAC1] text-[#B07D62] dark:bg-[#292524] dark:text-orange-200 dark:border-2 dark:border-orange-400/20 rounded-[25px] p-5 h-48 flex flex-col justify-between shadow-md cursor-pointer hover:brightness-105 transition-all duration-200">
+                <div className="relative bg-[#FFDAC1] text-[#B07D62] dark:bg-[#292524] dark:text-orange-200 dark:border-2 dark:border-orange-400/20 rounded-[25px] p-5 h-48 flex flex-col justify-between shadow-md cursor-pointer hover:brightness-105 transition-all duration-200 overflow-hidden">
+                  {/* Danger pulse overlay */}
+                  {!attendance.isSafe && attendance.totalSubjects > 0 && (
+                    <motion.div
+                      className="absolute inset-0 rounded-[25px] bg-red-400/15 pointer-events-none"
+                      animate={{ opacity: [0.3, 0.8, 0.3] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  )}
                   <div className="flex justify-between items-center opacity-70">
                     <span className="font-bold text-[11px] uppercase tracking-widest">Bunk Budget</span>
                     <TrendingUp size={15} />
@@ -327,7 +353,14 @@ export default function Home() {
                     <div className="flex-1 flex flex-col justify-center">
                       <p className="text-[10px] font-bold opacity-50 uppercase tracking-widest truncate mb-0.5">{attendance.worstSubject}</p>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-black">{attendance.worstPct}%</span>
+                        {/* Percentage pops in when data loads */}
+                        <motion.span
+                          key={attendance.worstPct}
+                          initial={{ opacity: 0, scale: 1.2 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.45, ease: EASE }}
+                          className="text-3xl font-black"
+                        >{attendance.worstPct}%</motion.span>
                         <span className="text-[10px] font-bold opacity-50">present</span>
                       </div>
                       <p className="text-[11px] font-bold opacity-60 mt-0.5">{attendance.skipsLeft} skip{attendance.skipsLeft !== 1 ? "s" : ""} left</p>
@@ -357,7 +390,13 @@ export default function Home() {
                     <p className="text-sm opacity-70 dark:text-gray-500">Test yourself under pressure.</p>
                   </div>
                 </div>
-                <ArrowRight size={20} className="dark:text-gray-500 shrink-0" />
+                {/* Arrow nudges right to invite interaction */}
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.1, repeat: Infinity, repeatDelay: 1.8, ease: "easeInOut" }}
+                >
+                  <ArrowRight size={20} className="dark:text-gray-500 shrink-0" />
+                </motion.div>
               </div>
             </Link>
           </motion.div>
