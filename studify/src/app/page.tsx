@@ -205,8 +205,8 @@ export default function Home() {
         setGpaData(cached.gpaData);
         setTimetableToday(cached.timetableToday || []);
         // Update SW notification data + fire on-open check even on cache hit
-        updateNotificationData(cached.rawExamList || [], cached.rawStreak || null);
-        checkOnOpen(cached.rawExamList || [], cached.rawStreak || null);
+        updateNotificationData(cached.rawExamList || [], cached.rawStreak || null, cached.rawAttendanceList || []);
+        checkOnOpen(cached.rawExamList || [], cached.rawStreak || null, cached.rawAttendanceList || []);
         setLoading(false);
         return;
       }
@@ -291,15 +291,17 @@ export default function Home() {
       }
       setTimetableToday(newTimetableToday);
 
-      // Raw exam list + streak object for notification system
-      const rawExamList = (examSnap.exists() ? examSnap.data().list : null) || [];
-      const rawStreak   = streakSnap.exists()
+      // Raw data for notification system
+      const rawExamList       = (examSnap.exists() ? examSnap.data().list : null) || [];
+      const rawStreak         = streakSnap.exists()
         ? (streakSnap.data() as { current: number; lastStudied?: string })
         : null;
+      const rawAttendanceList: { name: string; attended: number; total: number; required: number }[] =
+        (attSnap.exists() ? attSnap.data().list : null) || [];
 
       // Update SW notification data + fire on-open check
-      updateNotificationData(rawExamList, rawStreak);
-      checkOnOpen(rawExamList, rawStreak);
+      updateNotificationData(rawExamList, rawStreak, rawAttendanceList);
+      checkOnOpen(rawExamList, rawStreak, rawAttendanceList);
 
       // Store name + active subject in localStorage so focus room avoids extra reads
       localStorage.setItem("studify_userName", newProfile.name);
@@ -325,7 +327,7 @@ export default function Home() {
       writeDashCache(cu.uid, {
         profile: newProfile, activeTask: newActiveTask, streak: newStreak,
         attendance: newAttendance, examData: newExamData, gpaData: newGpaData,
-        timetableToday: newTimetableToday, rawExamList, rawStreak,
+        timetableToday: newTimetableToday, rawExamList, rawStreak, rawAttendanceList,
       });
 
       setLoading(false);
