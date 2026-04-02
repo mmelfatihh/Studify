@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 import { motion, LayoutGroup } from "framer-motion";
 import {
   LayoutDashboard, Calendar, Zap, BarChart3,
-  Coffee, PlayCircle, Settings, Moon, Sun, LogOut, GraduationCap,
+  Coffee, PlayCircle, Settings, Moon, Sun, LogOut, GraduationCap, CalendarDays,
 } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "@/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { registerServiceWorker } from "@/lib/notifications";
 
 const NAV = [
   { href: "/",            label: "Dashboard",     icon: LayoutDashboard },
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/focus",       label: "Focus Room",    icon: Coffee },
   { href: "/simulator",   label: "Simulator",     icon: PlayCircle },
   { href: "/grades",      label: "GPA Tracker",   icon: GraduationCap },
+  { href: "/timetable",  label: "Timetable",     icon: CalendarDays },
 ];
 
 const NO_SIDEBAR = ["/login", "/setup", "/focus"];
@@ -35,6 +37,9 @@ export function Sidebar() {
   const [profile, setProfile] = useState<{ name: string; major: string } | null>(null);
 
   useEffect(() => {
+    // Register service worker once per session for push notifications
+    registerServiceWorker();
+
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const snap = await getDoc(doc(db, "users", user.uid));

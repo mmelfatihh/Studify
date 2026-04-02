@@ -3,7 +3,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, AlertTriangle, TrendingUp, CheckCircle, Settings,
-  User, Edit2, PlayCircle, ArrowRight, Flame, GraduationCap, ChevronRight,
+  User, Edit2, PlayCircle, ArrowRight, Flame, GraduationCap, ChevronRight, CalendarDays,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -32,6 +32,8 @@ const SHEET = { type: "spring" as const, stiffness: 280, damping: 28 };
 // ────────────────────────────────────────────────────────────────────────────
 
 import { readDashCache, writeDashCache, patchDashCache } from "@/lib/dashCache";
+import { updateNotificationData, checkOnOpen } from "@/lib/notifications";
+import { fmt12, TIMETABLE_PALETTE, getTodayIdx, type ClassEntry } from "@/app/timetable/page";
 
 function getGradePoints(pct: number): number {
   if (pct >= 90) return 4.0; if (pct >= 85) return 3.7; if (pct >= 80) return 3.3;
@@ -90,6 +92,88 @@ function GPAWidget({ gpa, hasData }: { gpa: number; hasData: boolean }) {
   );
 }
 
+function TimetableWidget({ classes }: { classes: ClassEntry[] }) {
+  const now     = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+
+  const upcoming = classes.filter(c => {
+    const [eh, em] = (c.endTime || c.startTime).split(":").map(Number);
+    return eh * 60 + em > nowMins;
+  });
+
+  const displayed = upcoming.slice(0, 3);
+
+  return (
+    <motion.div variants={slideUp} whileTap={{ scale: 0.97 }}>
+      <Link href="/timetable">
+        <div className="bg-[#8FB996] dark:bg-[#292524] dark:border-2 dark:border-emerald-400/20 rounded-[25px] p-5 shadow-md cursor-pointer hover:brightness-105 transition-all duration-200">
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center gap-2">
+              <CalendarDays size={13} className="text-white/70 dark:text-emerald-200/70" />
+              <span className="text-[11px] font-bold uppercase tracking-widest text-white/70 dark:text-emerald-200/70">
+                Today&apos;s Schedule
+              </span>
+            </div>
+            <ChevronRight size={14} className="text-white/50 dark:text-emerald-300/50" />
+          </div>
+
+          {classes.length === 0 ? (
+            <p className="text-white/80 dark:text-emerald-200 text-sm font-semibold">
+              Set up your timetable →
+            </p>
+          ) : upcoming.length === 0 ? (
+            <div>
+              <p className="text-white font-black text-base dark:text-emerald-100">All done for today 🎉</p>
+              <p className="text-white/60 dark:text-emerald-300/60 text-[11px] mt-0.5">
+                {classes.length} class{classes.length !== 1 ? "es" : ""} completed
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {displayed.map((c) => {
+                const [sh, sm] = c.startTime.split(":").map(Number);
+                const startMins = sh * 60 + sm;
+                const [eh, em]  = (c.endTime || c.startTime).split(":").map(Number);
+                const isNow     = nowMins >= startMins && nowMins < eh * 60 + em;
+                return (
+                  <div key={c.id} className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: TIMETABLE_PALETTE[c.colorIdx % TIMETABLE_PALETTE.length] }}
+                    />
+                    <span className="text-white font-bold text-sm dark:text-emerald-100 truncate flex-1">
+                      {c.subject}
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isNow && (
+                        <motion.span
+                          animate={{ opacity: [1, 0.4, 1] }}
+                          transition={{ duration: 1.4, repeat: Infinity }}
+                          className="text-[9px] font-black bg-white/25 text-white px-1.5 py-0.5 rounded-full"
+                        >
+                          NOW
+                        </motion.span>
+                      )}
+                      <span className="text-white/65 dark:text-emerald-200/65 text-[11px] font-medium">
+                        {fmt12(c.startTime)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              {upcoming.length > 3 && (
+                <p className="text-white/50 dark:text-emerald-300/50 text-[10px] pl-4">
+                  +{upcoming.length - 3} more
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -101,6 +185,7 @@ export default function Home() {
   const [attendance, setAttendance] = useState({ skipsLeft: 0, isSafe: true, worstSubject: "", worstPct: 0, totalSubjects: 0 });
   const [gpaData, setGpaData] = useState({ gpa: 0, hasData: false });
   const [streak, setStreak] = useState(0);
+  const [timetableToday, setTimetableToday] = useState<ClassEntry[]>([]);
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [editForm, setEditForm] = useState({ subject: "", title: "" });
 
@@ -118,12 +203,16 @@ export default function Home() {
         setAttendance(cached.attendance);
         setExamData(cached.examData);
         setGpaData(cached.gpaData);
+        setTimetableToday(cached.timetableToday || []);
+        // Update SW notification data + fire on-open check even on cache hit
+        updateNotificationData(cached.rawExamList || [], cached.rawStreak || null);
+        checkOnOpen(cached.rawExamList || [], cached.rawStreak || null);
         setLoading(false);
         return;
       }
 
-      // ── Cache miss: fetch all 6 docs in parallel ──────────────────────────
-      const [profileSnap, dashSnap, streakSnap, attSnap, examSnap, gradesSnap] =
+      // ── Cache miss: fetch all docs in parallel ────────────────────────────
+      const [profileSnap, dashSnap, streakSnap, attSnap, examSnap, gradesSnap, ttSnap] =
         await Promise.all([
           getDoc(doc(db, "users", cu.uid)),
           getDoc(doc(db, "users", cu.uid, "dashboard", "data")),
@@ -131,6 +220,7 @@ export default function Home() {
           getDoc(doc(db, "users", cu.uid, "attendance", "subjects")),
           getDoc(doc(db, "users", cu.uid, "exams", "data")),
           getDoc(doc(db, "users", cu.uid, "grades", "data")),
+          getDoc(doc(db, "users", cu.uid, "timetable", "data")),
         ]);
 
       if (!profileSnap.exists()) { router.push("/setup"); return; }
@@ -187,6 +277,30 @@ export default function Home() {
       }
       setGpaData(newGpaData);
 
+      // Timetable: today's classes for the widget
+      const todayIdx = getTodayIdx();
+      let newTimetableToday: ClassEntry[] = [];
+      if (ttSnap.exists() && ttSnap.data().entries?.length > 0) {
+        newTimetableToday = (ttSnap.data().entries as ClassEntry[])
+          .filter((e) => e.days?.includes(todayIdx))
+          .sort((a, b) => {
+            const [ah, am] = a.startTime.split(":").map(Number);
+            const [bh, bm] = b.startTime.split(":").map(Number);
+            return ah * 60 + am - (bh * 60 + bm);
+          });
+      }
+      setTimetableToday(newTimetableToday);
+
+      // Raw exam list + streak object for notification system
+      const rawExamList = (examSnap.exists() ? examSnap.data().list : null) || [];
+      const rawStreak   = streakSnap.exists()
+        ? (streakSnap.data() as { current: number; lastStudied?: string })
+        : null;
+
+      // Update SW notification data + fire on-open check
+      updateNotificationData(rawExamList, rawStreak);
+      checkOnOpen(rawExamList, rawStreak);
+
       // Store name + active subject in localStorage so focus room avoids extra reads
       localStorage.setItem("studify_userName", newProfile.name);
       localStorage.setItem("studify_activeSubject", newActiveTask.subject);
@@ -195,6 +309,7 @@ export default function Home() {
       writeDashCache(cu.uid, {
         profile: newProfile, activeTask: newActiveTask, streak: newStreak,
         attendance: newAttendance, examData: newExamData, gpaData: newGpaData,
+        timetableToday: newTimetableToday, rawExamList, rawStreak,
       });
 
       setLoading(false);
@@ -422,6 +537,9 @@ export default function Home() {
 
           {/* GPA WIDGET */}
           <GPAWidget gpa={gpaData.gpa} hasData={gpaData.hasData} />
+
+          {/* TIMETABLE WIDGET */}
+          <TimetableWidget classes={timetableToday} />
 
           {/* SIMULATOR */}
           <motion.div variants={slideUp} whileTap={{ scale: 0.97 }}>
