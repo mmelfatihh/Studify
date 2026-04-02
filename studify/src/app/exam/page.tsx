@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Plus, Zap, AlertCircle, CheckCircle, Calendar, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { auth, db } from "@/firebase";
@@ -56,9 +56,6 @@ export default function ExamPulse() {
   const [newDate, setNewDate] = useState("");
   const [selected, setSelected] = useState<Exam | null>(null);
 
-  const saveTimer = useRef<NodeJS.Timeout | null>(null);
-  const isFirstLoad = useRef(true);
-
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) return;
@@ -66,27 +63,31 @@ export default function ExamPulse() {
       const snap = await getDoc(doc(db, "users", user.uid, "exams", "data"));
       if (snap.exists() && snap.data().list) setExams(snap.data().list);
       setLoading(false);
-      isFirstLoad.current = false;
     });
     return () => unsub();
   }, []);
 
-  useEffect(() => {
-    if (isFirstLoad.current || !uid) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(async () => {
-      await setDoc(doc(db, "users", uid, "exams", "data"), { list: exams }, { merge: true });
-      syncToLocalStorage(exams);
-    }, 600);
-  }, [exams, uid]);
+  // Explicit save — only called on intentional user actions, never on every state change
+  const saveExams = async (list: Exam[]) => {
+    if (!uid) return;
+    await setDoc(doc(db, "users", uid, "exams", "data"), { list }, { merge: true });
+    syncToLocalStorage(list);
+  };
 
   const addExam = () => {
     if (!newSubject.trim()) return;
-    setExams((p) => [...p, { id: Date.now().toString(), subject: newSubject.trim(), date: newDate, prepLevel: 50 }]);
+    const newList = [...exams, { id: Date.now().toString(), subject: newSubject.trim(), date: newDate, prepLevel: 50 }];
+    setExams(newList);
     setNewSubject(""); setNewDate(""); setShowAdd(false);
+    saveExams(newList);
   };
 
-  const deleteExam = (id: string) => { setExams((p) => p.filter((e) => e.id !== id)); setSelected(null); };
+  const deleteExam = (id: string) => {
+    const newList = exams.filter((e) => e.id !== id);
+    setExams(newList);
+    setSelected(null);
+    saveExams(newList);
+  };
 
   const updatePrep = (id: string, level: number) => {
     setExams((p) => p.map((e) => (e.id === id ? { ...e, prepLevel: level } : e)));
@@ -227,7 +228,7 @@ export default function ExamPulse() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center"
-            onClick={() => setSelected(null)}
+            onClick={() => { saveExams(exams); setSelected(null); }}
           >
             <motion.div
               initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
@@ -288,7 +289,10 @@ export default function ExamPulse() {
                 >
                   <Trash2 size={20} />
                 </button>
-                <button onClick={() => setSelected(null)} className="flex-1 py-3 bg-[#2D3436] dark:bg-white text-white dark:text-[#2D3436] rounded-xl font-bold active:scale-[0.98] transition-transform">
+                <button
+                  onClick={() => { saveExams(exams); setSelected(null); }}
+                  className="flex-1 py-3 bg-[#2D3436] dark:bg-white text-white dark:text-[#2D3436] rounded-xl font-bold active:scale-[0.98] transition-transform"
+                >
                   Done
                 </button>
               </div>

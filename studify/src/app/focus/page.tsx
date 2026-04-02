@@ -5,7 +5,7 @@ import { X, Play, Pause } from "lucide-react";
 import Link from "next/link";
 import { auth, db } from "@/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, limit } from "firebase/firestore";
 
 const MAX_VISIBLE = 5;
 
@@ -45,13 +45,9 @@ export default function FocusRoom() {
       if (user) {
         setCurrentUser(user);
 
-        const dashSnap = await getDoc(doc(db, "users", user.uid, "dashboard", "data"));
-        const profileSnap = await getDoc(doc(db, "users", user.uid));
-
-        const mySubject = dashSnap.exists()
-          ? (dashSnap.data()?.activeTask?.subject ?? "Focusing")
-          : "Focusing";
-        const myName = profileSnap.exists() ? profileSnap.data().name : "Student";
+        // Read from localStorage (written by dashboard on load) — avoids 2 Firestore reads per join
+        const myName = localStorage.getItem("studify_userName") || user.displayName || "Student";
+        const mySubject = localStorage.getItem("studify_activeSubject") || "Focusing";
 
         const myRoomRef = doc(db, "focus_room", user.uid);
         await setDoc(myRoomRef, {
@@ -67,7 +63,7 @@ export default function FocusRoom() {
         // Update streak on join
         await updateStreak(user.uid);
 
-        const roomCollection = collection(db, "focus_room");
+        const roomCollection = query(collection(db, "focus_room"), limit(30));
         unsubscribeRoom = onSnapshot(roomCollection, (snapshot) => {
           const users: any[] = [];
           snapshot.forEach((doc) => {

@@ -31,6 +31,27 @@ const slideUp = {
 const SHEET = { type: "spring" as const, stiffness: 280, damping: 28 };
 // ────────────────────────────────────────────────────────────────────────────
 
+// ─── Dashboard cache (5-min TTL) ─────────────────────────────────────────────
+const DASH_CACHE_KEY = "studify_dash_v1";
+const DASH_CACHE_TTL = 5 * 60 * 1000;
+
+function readDashCache(uid: string) {
+  try {
+    const raw = localStorage.getItem(`${DASH_CACHE_KEY}_${uid}`);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > DASH_CACHE_TTL) return null;
+    return data;
+  } catch { return null; }
+}
+
+function writeDashCache(uid: string, data: object) {
+  try {
+    localStorage.setItem(`${DASH_CACHE_KEY}_${uid}`, JSON.stringify({ ts: Date.now(), data }));
+  } catch {}
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getGradePoints(pct: number): number {
   if (pct >= 90) return 4.0; if (pct >= 85) return 3.7; if (pct >= 80) return 3.3;
   if (pct >= 75) return 3.0; if (pct >= 70) return 2.7; if (pct >= 65) return 2.3;
@@ -107,17 +128,43 @@ export default function Home() {
       if (!cu) { router.push("/login"); return; }
       setUser(cu);
 
-      const profileSnap = await getDoc(doc(db, "users", cu.uid));
-      if (profileSnap.exists()) setProfile(profileSnap.data() as any);
-      else { router.push("/setup"); return; }
+      // ── Cache-first: if fresh data exists locally, skip all Firestore reads ──
+      const cached = readDashCache(cu.uid);
+      if (cached) {
+        setProfile(cached.profile);
+        setActiveTask(cached.activeTask);
+        setStreak(cached.streak);
+        setAttendance(cached.attendance);
+        setExamData(cached.examData);
+        setGpaData(cached.gpaData);
+        setLoading(false);
+        return;
+      }
 
-      const dashSnap = await getDoc(doc(db, "users", cu.uid, "dashboard", "data"));
-      if (dashSnap.exists() && dashSnap.data().activeTask) setActiveTask(dashSnap.data().activeTask);
+      // ── Cache miss: fetch all 6 docs in parallel ──────────────────────────
+      const [profileSnap, dashSnap, streakSnap, attSnap, examSnap, gradesSnap] =
+        await Promise.all([
+          getDoc(doc(db, "users", cu.uid)),
+          getDoc(doc(db, "users", cu.uid, "dashboard", "data")),
+          getDoc(doc(db, "users", cu.uid, "streak", "data")),
+          getDoc(doc(db, "users", cu.uid, "attendance", "subjects")),
+          getDoc(doc(db, "users", cu.uid, "exams", "data")),
+          getDoc(doc(db, "users", cu.uid, "grades", "data")),
+        ]);
 
-      const streakSnap = await getDoc(doc(db, "users", cu.uid, "streak", "data"));
-      if (streakSnap.exists()) setStreak(streakSnap.data().current ?? 0);
+      if (!profileSnap.exists()) { router.push("/setup"); return; }
+      const newProfile = profileSnap.data() as { name: string; major: string };
+      setProfile(newProfile);
 
-      const attSnap = await getDoc(doc(db, "users", cu.uid, "attendance", "subjects"));
+      const newActiveTask = (dashSnap.exists() && dashSnap.data().activeTask)
+        ? dashSnap.data().activeTask
+        : { subject: "Free time", title: "Enjoy your day" };
+      setActiveTask(newActiveTask);
+
+      const newStreak = streakSnap.exists() ? (streakSnap.data().current ?? 0) : 0;
+      setStreak(newStreak);
+
+      let newAttendance = { skipsLeft: 0, isSafe: true, worstSubject: "", worstPct: 0, totalSubjects: 0 };
       if (attSnap.exists() && attSnap.data().list?.length > 0) {
         const list: any[] = attSnap.data().list;
         const enriched = list.map((s) => ({
@@ -128,33 +175,46 @@ export default function Home() {
         }));
         const minSkips = Math.min(...enriched.map((x) => x.skips));
         const worst = enriched.find((x) => x.skips === minSkips) || enriched[0];
-        setAttendance({ skipsLeft: minSkips, isSafe: enriched.every((x) => x.safe), worstSubject: worst.name, worstPct: worst.pct, totalSubjects: list.length });
+        newAttendance = { skipsLeft: minSkips, isSafe: enriched.every((x) => x.safe), worstSubject: worst.name, worstPct: worst.pct, totalSubjects: list.length };
       }
+      setAttendance(newAttendance);
 
-      const examSnap = await getDoc(doc(db, "users", cu.uid, "exams", "data"));
+      let newExamData = { subject: "No Exam Set", daysLeft: 0, prepLevel: 50, count: 0 };
       if (examSnap.exists() && examSnap.data().list?.length > 0) {
         const list: any[] = examSnap.data().list;
         const withDays = list.map((e) => ({ ...e, daysLeft: Math.ceil((new Date(e.date).getTime() - Date.now()) / 86400000) }));
         const upcoming = withDays.filter((e) => e.daysLeft > 0).sort((a, b) => a.daysLeft - b.daysLeft);
         const soonest = upcoming[0] || withDays[0];
-        setExamData({ subject: soonest.subject, daysLeft: Math.max(0, soonest.daysLeft), prepLevel: soonest.prepLevel, count: list.length });
+        newExamData = { subject: soonest.subject, daysLeft: Math.max(0, soonest.daysLeft), prepLevel: soonest.prepLevel, count: list.length };
       } else {
         const savedSubject = localStorage.getItem("examSubject");
         const savedDate = localStorage.getItem("examDate");
         const savedPrep = localStorage.getItem("examPrep");
         const days = savedDate ? Math.ceil((new Date(savedDate).getTime() - Date.now()) / 86400000) : 0;
-        setExamData({ subject: savedSubject || "No Exam Set", daysLeft: days > 0 ? days : 0, prepLevel: savedPrep ? parseInt(savedPrep) : 50, count: savedSubject ? 1 : 0 });
+        newExamData = { subject: savedSubject || "No Exam Set", daysLeft: days > 0 ? days : 0, prepLevel: savedPrep ? parseInt(savedPrep) : 50, count: savedSubject ? 1 : 0 };
       }
+      setExamData(newExamData);
 
-      const gradesSnap = await getDoc(doc(db, "users", cu.uid, "grades", "data"));
+      let newGpaData = { gpa: 0, hasData: false };
       if (gradesSnap.exists() && gradesSnap.data().list?.length > 0) {
         const list: any[] = gradesSnap.data().list;
         const totalCr = list.reduce((a: number, s: any) => a + s.credits, 0);
         if (totalCr > 0) {
           const weighted = list.reduce((a: number, s: any) => a + getGradePoints(s.percentage) * s.credits, 0);
-          setGpaData({ gpa: Math.round((weighted / totalCr) * 100) / 100, hasData: true });
+          newGpaData = { gpa: Math.round((weighted / totalCr) * 100) / 100, hasData: true };
         }
       }
+      setGpaData(newGpaData);
+
+      // Store name + active subject in localStorage so focus room avoids extra reads
+      localStorage.setItem("studify_userName", newProfile.name);
+      localStorage.setItem("studify_activeSubject", newActiveTask.subject);
+
+      // Persist to cache so next visit within 5 min costs 0 reads
+      writeDashCache(cu.uid, {
+        profile: newProfile, activeTask: newActiveTask, streak: newStreak,
+        attendance: newAttendance, examData: newExamData, gpaData: newGpaData,
+      });
 
       setLoading(false);
     });
@@ -167,6 +227,16 @@ export default function Home() {
     setActiveTask(newTask);
     setIsEditingTask(false);
     await setDoc(doc(db, "users", user.uid, "dashboard", "data"), { activeTask: newTask }, { merge: true });
+    // Keep cache + localStorage bridge in sync so focus room picks up the new subject
+    localStorage.setItem("studify_activeSubject", newTask.subject);
+    try {
+      const raw = localStorage.getItem(`${DASH_CACHE_KEY}_${user.uid}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        parsed.data.activeTask = newTask;
+        localStorage.setItem(`${DASH_CACHE_KEY}_${user.uid}`, JSON.stringify(parsed));
+      }
+    } catch {}
   };
 
   const getExamTheme = () => {
