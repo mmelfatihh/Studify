@@ -305,6 +305,22 @@ export default function Home() {
       localStorage.setItem("studify_userName", newProfile.name);
       localStorage.setItem("studify_activeSubject", newActiveTask.subject);
 
+      // Populate Smart Planner exam bridge from Firestore data so Device 2
+      // gets the correct exam subject without ever visiting the exam page first
+      if (rawExamList.length > 0) {
+        const sorted = [...rawExamList].sort((a: any, b: any) => {
+          const da = Math.ceil((new Date(a.date).getTime() - Date.now()) / 86400000);
+          const db2 = Math.ceil((new Date(b.date).getTime() - Date.now()) / 86400000);
+          if (da <= 0 && db2 <= 0) return 0;
+          if (da <= 0) return 1;
+          if (db2 <= 0) return -1;
+          return da - db2;
+        });
+        localStorage.setItem("examSubject", sorted[0].subject);
+        localStorage.setItem("examDate", sorted[0].date);
+        localStorage.setItem("examPrep", String(sorted[0].prepLevel));
+      }
+
       // Persist to cache so next visit within 5 min costs 0 reads
       writeDashCache(cu.uid, {
         profile: newProfile, activeTask: newActiveTask, streak: newStreak,
