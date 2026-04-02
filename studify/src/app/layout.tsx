@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: "Studify",
   description: "Focus, Plan, Achieve",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
