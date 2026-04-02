@@ -6,6 +6,7 @@ import Link from "next/link";
 import { auth, db } from "@/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, limit } from "firebase/firestore";
+import { invalidateDashCache } from "@/lib/dashCache";
 
 const MAX_VISIBLE = 5;
 
@@ -60,8 +61,9 @@ export default function FocusRoom() {
           joinedAt: Date.now(),
         });
 
-        // Update streak on join
+        // Update streak on join — invalidate dashboard so flame count refreshes on return
         await updateStreak(user.uid);
+        invalidateDashCache(user.uid);
 
         const roomCollection = query(collection(db, "focus_room"), limit(30));
         unsubscribeRoom = onSnapshot(roomCollection, (snapshot) => {

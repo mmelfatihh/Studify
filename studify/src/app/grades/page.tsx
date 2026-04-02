@@ -6,6 +6,7 @@ import Link from "next/link";
 import { auth, db } from "@/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { invalidateDashCache } from "@/lib/dashCache";
 
 // ─── Animation system ─────────────────────────────────────────────────────
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -80,6 +81,7 @@ export default function GradesPage() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       setDoc(doc(db, "users", uid, "grades", "data"), { list: subjects }, { merge: true });
+      invalidateDashCache(uid);
     }, 600);
   }, [subjects, uid]);
 

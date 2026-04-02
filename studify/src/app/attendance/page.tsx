@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, AlertTriangle, CheckCircle, Loader2, Plus, X, Trash2, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { invalidateDashCache } from "@/lib/dashCache";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "@/firebase";
 
@@ -70,6 +71,7 @@ export default function AttendanceCalculator() {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
       await setDoc(doc(db, "users", user.uid, "attendance", "subjects"), { list: subjects });
+      invalidateDashCache(user.uid);
       // Also update the legacy stats doc with aggregated data so the dashboard widget still works
       if (subjects.length > 0) {
         const minSkips = Math.min(...subjects.map(s => Math.max(0, Math.floor((s.attended / (s.required / 100)) - s.total))));

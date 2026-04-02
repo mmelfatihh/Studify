@@ -31,26 +31,7 @@ const slideUp = {
 const SHEET = { type: "spring" as const, stiffness: 280, damping: 28 };
 // ────────────────────────────────────────────────────────────────────────────
 
-// ─── Dashboard cache (5-min TTL) ─────────────────────────────────────────────
-const DASH_CACHE_KEY = "studify_dash_v1";
-const DASH_CACHE_TTL = 5 * 60 * 1000;
-
-function readDashCache(uid: string) {
-  try {
-    const raw = localStorage.getItem(`${DASH_CACHE_KEY}_${uid}`);
-    if (!raw) return null;
-    const { ts, data } = JSON.parse(raw);
-    if (Date.now() - ts > DASH_CACHE_TTL) return null;
-    return data;
-  } catch { return null; }
-}
-
-function writeDashCache(uid: string, data: object) {
-  try {
-    localStorage.setItem(`${DASH_CACHE_KEY}_${uid}`, JSON.stringify({ ts: Date.now(), data }));
-  } catch {}
-}
-// ─────────────────────────────────────────────────────────────────────────────
+import { readDashCache, writeDashCache, patchDashCache } from "@/lib/dashCache";
 
 function getGradePoints(pct: number): number {
   if (pct >= 90) return 4.0; if (pct >= 85) return 3.7; if (pct >= 80) return 3.3;
@@ -229,14 +210,7 @@ export default function Home() {
     await setDoc(doc(db, "users", user.uid, "dashboard", "data"), { activeTask: newTask }, { merge: true });
     // Keep cache + localStorage bridge in sync so focus room picks up the new subject
     localStorage.setItem("studify_activeSubject", newTask.subject);
-    try {
-      const raw = localStorage.getItem(`${DASH_CACHE_KEY}_${user.uid}`);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        parsed.data.activeTask = newTask;
-        localStorage.setItem(`${DASH_CACHE_KEY}_${user.uid}`, JSON.stringify(parsed));
-      }
-    } catch {}
+    patchDashCache(user.uid, { activeTask: newTask });
   };
 
   const getExamTheme = () => {

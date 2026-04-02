@@ -6,6 +6,7 @@ import Link from "next/link";
 import { auth, db } from "@/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { invalidateDashCache } from "@/lib/dashCache";
 
 // ─── Animation system ───────────────────────────────────────────────────────
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -72,6 +73,7 @@ export default function ExamPulse() {
     if (!uid) return;
     await setDoc(doc(db, "users", uid, "exams", "data"), { list }, { merge: true });
     syncToLocalStorage(list);
+    invalidateDashCache(uid); // force dashboard to re-fetch on next visit
   };
 
   const addExam = () => {
@@ -289,12 +291,14 @@ export default function ExamPulse() {
                 >
                   <Trash2 size={20} />
                 </button>
-                <button
+                <motion.button
                   onClick={() => { saveExams(exams); setSelected(null); }}
+                  animate={{ scale: [1, 1.04, 1], boxShadow: ["0 0 0px rgba(45,52,54,0)", "0 4px 18px rgba(45,52,54,0.22)", "0 0 0px rgba(45,52,54,0)"] }}
+                  transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 1.2, ease: "easeInOut" }}
                   className="flex-1 py-3 bg-[#2D3436] dark:bg-white text-white dark:text-[#2D3436] rounded-xl font-bold active:scale-[0.98] transition-transform"
                 >
                   Done
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
